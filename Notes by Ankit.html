@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notes By Ankit</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    select, button { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
+    .output { margin-top: 20px; background: #f8f8f8; padding: 15px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>📚 Notes By Ankit</h2>
+
+  <label>Class</label>
+  <select id="classSelect"></select>
+
+  <label>Subject</label>
+  <select id="subjectSelect"></select>
+
+  <label>Chapter</label>
+  <select id="chapterSelect"></select>
+
+  <div class="output" id="noteLink"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzDmsTvGZ-_KkTJl8iKwhOIOqQ7J8oSbINAyEs-v71cHR3ai_d7mcwZ7maLiMV4cXPdDw/exec";
+    let allData = [];
+
+    async function fetchData() {
+      try {
+        const response = await fetch(API_URL);
+        allData = await response.json();
+        populateClassDropdown();
+      } catch (error) {
+        console.error("Data fetch error:", error);
+        document.getElementById("noteLink").innerText = "Failed to load data. Please check your internet or API.";
+      }
+    }
+
+    function populateClassDropdown() {
+      const classSelect = document.getElementById("classSelect");
+      const classes = [...new Set(allData.map(item => item.Class))];
+      classSelect.innerHTML = `<option value="">Select Class</option>` +
+        classes.map(c => `<option value="${c}">${c}</option>`).join("");
+    }
+
+    document.getElementById("classSelect").addEventListener("change", function () {
+      const selectedClass = parseInt(this.value);
+      const subjects = [...new Set(allData.filter(item => item.Class === selectedClass).map(item => item.Subject))];
+      const subjectSelect = document.getElementById("subjectSelect");
+      subjectSelect.innerHTML = `<option value="">Select Subject</option>` +
+        subjects.map(s => `<option value="${s}">${s}</option>`).join("");
+      document.getElementById("chapterSelect").innerHTML = `<option value="">Select Chapter</option>`;
+      document.getElementById("noteLink").innerHTML = "";
+    });
+
+    document.getElementById("subjectSelect").addEventListener("change", function () {
+      const selectedClass = parseInt(document.getElementById("classSelect").value);
+      const selectedSubject = this.value;
+      const chapters = allData.filter(item => item.Class === selectedClass && item.Subject === selectedSubject);
+      const chapterSelect = document.getElementById("chapterSelect");
+      chapterSelect.innerHTML = `<option value="">Select Chapter</option>` +
+        chapters.map(ch => `<option value="${ch["Chapter Name"]}">${ch["Chapter No."]}. ${ch["Chapter Name"]}</option>`).join("");
+      document.getElementById("noteLink").innerHTML = "";
+    });
+
+    document.getElementById("chapterSelect").addEventListener("change", function () {
+      const selectedClass = parseInt(document.getElementById("classSelect").value);
+      const selectedSubject = document.getElementById("subjectSelect").value;
+      const selectedChapter = this.value;
+      const note = allData.find(item =>
+        item.Class === selectedClass &&
+        item.Subject === selectedSubject &&
+        item["Chapter Name"] === selectedChapter
+      );
+
+      const noteDiv = document.getElementById("noteLink");
+      if (note && note["Notes Link"]) {
+        noteDiv.innerHTML = `<strong>📖 ${selectedChapter}</strong><br><a href="${note["Notes Link"]}" target="_blank">Open Notes</a>`;
+      } else {
+        noteDiv.innerHTML = "No notes available.";
+      }
+    });
+
+    fetchData();
+  </script>
+</body>
+</html>
